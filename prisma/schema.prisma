@@ -1,0 +1,195 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+datasource db {
+  provider = "sqlite"
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    @default("ADMIN")
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  description  String?
+  imageUrl     String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  isVisible    Boolean   @default(true)
+  isArchived   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  products Product[]
+  promoCodes PromoCode[]
+}
+
+model Product {
+  id              String         @id @default(cuid())
+  name            String
+  slug            String         @unique
+  description     String?
+  priceInCents    Int
+  stock           Int            @default(0)
+
+  mainImageUrl    String?
+  videoUrl        String?
+
+  isVisible       Boolean        @default(true)
+  isBestSeller    Boolean        @default(false)
+  isPromotion     Boolean        @default(false)
+  isArchived      Boolean        @default(false)
+
+  categoryId      String
+  category        Category       @relation(fields: [categoryId], references: [id])
+
+  images          ProductImage[]
+  orderItems      OrderItem[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  promoCodes PromoCode[]
+  bestSellerOrder Int @default(0)
+}
+
+model ProductImage {
+  id          String   @id @default(cuid())
+  url         String
+  altText     String?
+  displayOrder Int    @default(0)
+
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+}
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+  customerAddress String?
+  customerCity    String?
+  customerNote    String?
+
+  status          String      @default("NEW")
+
+  subtotalInCents Int
+  discountInCents Int         @default(0)
+  totalInCents    Int
+
+  promoCodeSnapshot String?
+
+  items           OrderItem[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id                   String   @id @default(cuid())
+
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId            String?
+  product              Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productNameSnapshot  String
+  productSlugSnapshot  String?
+  productImageSnapshot String?
+  productPriceSnapshot Int
+  categoryNameSnapshot String?
+
+  quantity             Int
+  subtotal             Int
+}
+model PromoCode {
+  id              String   @id @default(cuid())
+  code            String   @unique
+
+  discountType    String
+  discountValue   Int
+
+  scope           String
+  categoryId      String?
+  productId       String?
+
+  startDate       DateTime
+  endDate         DateTime?
+
+  usageLimit      Int?
+  usedCount       Int      @default(0)
+
+  isActive        Boolean  @default(true)
+
+  category        Category? @relation(fields: [categoryId], references: [id])
+  product         Product?  @relation(fields: [productId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+model AuditLog {
+  id                 String   @id @default(cuid())
+
+  adminId            String?
+  admin              Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  adminNameSnapshot  String?
+  adminEmailSnapshot String?
+
+  action             String
+  entity             String?
+  entityId           String?
+  description        String?
+
+  createdAt          DateTime @default(now())
+}
+model SiteSetting {
+  id               String   @id
+  logoUrl          String?
+
+  themeMode        String   @default("LIGHT")
+  primaryColor     String   @default("#111827")
+  secondaryColor   String   @default("#d97706")
+
+  homeHeroTitle    String   @default("Bienvenue")
+  homeHeroSubtitle String   @default("Découvrez nos produits")
+  homeCtaText      String   @default("Voir la boutique")
+  homeCtaHref      String   @default("/products")
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model CarouselImage {
+  id           String   @id @default(cuid())
+  imageUrl     String
+  title        String?
+  subtitle     String?
+  altText      String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
